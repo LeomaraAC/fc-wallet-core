@@ -1,0 +1,24 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql:5.7
+    platform: linux/amd64
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=wallet
+      - MYSQL_PASSWORD=root
+    ports:
+      - 3306:3306
+    volumes:
+      - .docker/mysql:/var/lib/mysql
+  
+  web:
+    image: wallet-core
+    platform: linux/amd64
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
+    working_dir: /app/cmd/walletcore
+    entrypoint: ["go", "run", "main.go"]
