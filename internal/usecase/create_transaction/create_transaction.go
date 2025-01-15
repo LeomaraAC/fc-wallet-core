@@ -28,14 +28,12 @@ type CreateTransactionUseCase struct {
 }
 
 func NewCreateTransactionUseCase(
-	t gateway.TransactionGateway,
-	a gateway.AccountGateway,
+	Uow uow.UowInterface,
 	eventDispatcher events.EventDispatcherInterface,
 	transactionCreated events.EventInterface,
 ) *CreateTransactionUseCase {
 	return &CreateTransactionUseCase{
-		TransactionGateway: t,
-		AccountGateway: a,
+		Uow: Uow,
 		EventDispatcher: eventDispatcher,
 		TransactionCreated: transactionCreated,
 	}
@@ -48,32 +46,32 @@ func (uc *CreateTransactionUseCase) Execute(ctx context.Context, input CreateTra
 		transactionRepository := uc.getTransactionRepository(ctx)
 		accountFrom, err := accountRepository.FindById(input.AccountIDFrom)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		accountTo, err := accountRepository.FindById(input.AccountIDTo)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		transaction, err := entity.NewTransaction(accountFrom, accountTo, input.Amount)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		err = accountRepository.UpdateBalance(accountFrom)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		err = accountRepository.UpdateBalance(accountTo)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		err = transactionRepository.Create(transaction)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		output.ID = transaction.ID
@@ -93,7 +91,7 @@ func (uc *CreateTransactionUseCase) Execute(ctx context.Context, input CreateTra
 	return output, nil
 }
 
-func (uc *CreateTransactionUseCase) getAccountRepository(ctx context.Context) gateway.AccountRepository {
+func (uc *CreateTransactionUseCase) getAccountRepository(ctx context.Context) gateway.AccountGateway {
 	repo, err := uc.Uow.GetRepository(ctx, "AccountDB")
 	if err != nil {
 		panic(err)
@@ -101,7 +99,7 @@ func (uc *CreateTransactionUseCase) getAccountRepository(ctx context.Context) ga
 	return repo.(gateway.AccountGateway)
 }
 
-func (uc *CreateTransactionUseCase) getTransactionRepository(ctx context.Context) gateway.TransactionRepository {
+func (uc *CreateTransactionUseCase) getTransactionRepository(ctx context.Context) gateway.TransactionGateway {
 	repo, err := uc.Uow.GetRepository(ctx, "TransactionDB")
 	if err != nil {
 		panic(err)

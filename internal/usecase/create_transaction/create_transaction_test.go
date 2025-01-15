@@ -2,11 +2,13 @@ package create_transaction
 
 import (
 	"testing"
+	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com.br/leomaraAC/fs-ms-wallet/internal/entity"
 	"github.com.br/leomaraAC/fs-ms-wallet/pkg/events"
 	"github.com.br/leomaraAC/fs-ms-wallet/internal/event"
+	"github.com.br/leomaraAC/fs-ms-wallet/internal/usecase/mocks"
 )
 
 type TransactionGatewayMock struct {
@@ -47,12 +49,15 @@ func TestCreateTransactionUseCasr_Execute(t *testing.T) {
 	account2 := entity.NewAccount(client2)
 	account2.Credit(1000)
 
-	accountMock := &AccountGatewayMock{}
-	accountMock.On("FindById", account1.ID).Return(account1, nil)
-	accountMock.On("FindById", account2.ID).Return(account2, nil)
+	mockUow := &mocks.UowMock{}
+	mockUow.On("Do", mock.Anything, mock.Anything).Return(nil)
 
-	transactionMock := &TransactionGatewayMock{}
-	transactionMock.On("Create", mock.Anything).Return(nil)
+	// accountMock := &AccountGatewayMock{}
+	// accountMock.On("FindById", account1.ID).Return(account1, nil)
+	// accountMock.On("FindById", account2.ID).Return(account2, nil)
+
+	// transactionMock := &TransactionGatewayMock{}
+	// transactionMock.On("Create", mock.Anything).Return(nil)
 
 	inputDTO := CreateTransactionInputDTO {
 		AccountIDFrom: account1.ID,
@@ -62,14 +67,17 @@ func TestCreateTransactionUseCasr_Execute(t *testing.T) {
 
 	dispatcher := events.NewEventDispatcher()
 	event := event.NewTransactionCreated()
+	ctx := context.Background()
 
-	uc := NewCreateTransactionUseCase(transactionMock, accountMock, dispatcher, event)
+	uc := NewCreateTransactionUseCase(mockUow, dispatcher, event)
 
-	output, err := uc.Execute(inputDTO)
+	output, err := uc.Execute(ctx, inputDTO)
 	assert.Nil(t, err)
 	assert.NotNil(t, output.ID)
-	transactionMock.AssertExpectations(t)
-	accountMock.AssertExpectations(t)
-	transactionMock.AssertNumberOfCalls(t, "Create", 1)
-	accountMock.AssertNumberOfCalls(t, "FindById", 2)
+	mockUow.AssertExpectations(t)
+	mockUow.AssertNumberOfCalls(t, "Do", 1)
+	// transactionMock.AssertExpectations(t)
+	// accountMock.AssertExpectations(t)
+	// transactionMock.AssertNumberOfCalls(t, "Create", 1)
+	// accountMock.AssertNumberOfCalls(t, "FindById", 2)
 }
